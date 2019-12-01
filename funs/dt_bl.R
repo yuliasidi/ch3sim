@@ -1,19 +1,21 @@
-dt_bl <- function(n_arm, b1_mean, b2_mean, b1_sd, b2_sd, rho_b1b2){
-  
-  dt <- 
-    MASS::mvrnorm(n = n_arm, 
-                  mu = c(b1_mean, b2_mean), 
-                  Sigma = matrix(c(dis_bl_sd^2, rho_b1b2*b1_sd*b2_sd, 
-                                   rho_b1b2*b1_sd*b2_sd, b2_sd^2), 2, 2))
-  colnames(dt) <- c("dis_st", "age")
+dt_bl <- function(n_arm, mu_bl, smat_bl, trt){
 
+  dt <- MASS::mvrnorm(n = n_arm, mu = mu_bl, Sigma = smat_bl)
+  colnames(dt) <- c( "bcva_bl", "age_bl", "cst_bl", "srf_raw", "irf_raw", "rpe_raw", "sex_raw")
+  
   dt1 <- dt%>%
     tibble::as_tibble()%>%
-    dplyr::mutate(age = ifelse(age>95, 95, age),
-                  pat_id = seq(1, length(dt[,1]), 1),
-                  dis_cat = dplyr::case_when(dis_st <= 55 ~ 3,
-                                            dis_st > 55 & dis_st <= 70 ~ 2,
-                                            TRUE ~ 1))
+    dplyr::mutate(sex_raw = ifelse(sex_raw < 0, 0, ifelse(sex_raw > 1, 1, sex_raw)),
+                  srf_raw = ifelse(srf_raw < 0, 0, ifelse(srf_raw > 1, 1, srf_raw)),
+                  irf_raw = ifelse(irf_raw < 0, 0, ifelse(irf_raw > 1, 1, irf_raw)),
+                  rpe_raw = ifelse(rpe_raw < 0, 0, ifelse(rpe_raw > 1, 1, rpe_raw)))%>%
+    dplyr::mutate(sex = stats::rbinom(dplyr::n(), 1, sex_raw),
+                  srf = stats::rbinom(dplyr::n(), 1, srf_raw),
+                  irf = stats::rbinom(dplyr::n(), 1, irf_raw),
+                  rpe = stats::rbinom(dplyr::n(), 1, rpe_raw),
+                  trt = trt)%>%
+    dplyr::select(-c(srf_raw, irf_raw, rpe_raw, sex_raw))
+
 return(dt1)
 
   }

@@ -47,11 +47,11 @@ b1_s1_t <- -0.02
 b2_s1_t <-  0.02
 
 
-x1 <- parallel::mclapply(X = 1:100,
+x1 <- parallel::mclapply(X = 1:1000,
                          mc.cores = 7,
                          FUN = function(x){
   
-  set.seed(888*x)
+ set.seed(888*x)
  ############################
  ## Somulate baseline data ##
  ############################
@@ -141,7 +141,7 @@ x1 <- parallel::mclapply(X = 1:100,
   
   res_all <- t.test(dt4$mcda[dt4$trt == 'c'], dt4$mcda[dt4$trt == 't'])
   res_waval <- t.test(dt4$mcda[dt4$trt == 'c' & dt4$w_aval==1], dt4$mcda[dt4$trt == 't'  & dt4$w_aval==1])
-  res_allw <- wilcox.test(dt4$mcda[dt4$trt == 'c'], dt4$mcda[dt4$trt == 't'])
+  
   
   dt5 <- dt4%>%
     dplyr::mutate(mcda = ifelse(w_aval == 1, mcda, NA),
@@ -155,35 +155,22 @@ x1 <- parallel::mclapply(X = 1:100,
   predm[, "w1"] <- 0 
   
 
-  dt6 <- mice::mice(data = dt5,
+  imp <- mice::mice(data = dt5,
                     m = 5,
                     predictorMatrix = predm,
                     method = "cart",
                     seed = 666*x,
                     print = FALSE)
   
-  
-  
   mlist <- list(seq(1, 5, 1))
   
   dt_norm <- purrr::pmap_df(mlist, .f = function(x) {
     
-    out <- mice::complete(dt6, x)
+    out <- mice::complete(imp, x)
     out <- out%>%
       dplyr::mutate(m_num = x)
   })
 
-  rout <-
-    dt_norm%>%
-    dplyr::left_join(dt4%>%
-                       dplyr::select(pat_id, w_aval),
-                     by = "pat_id")%>%
-    dplyr::mutate(range_out = ifelse(w2 > 100 | w2 < 0, 1, 0))%>%
-    dplyr::group_by(m_num)%>%
-    dplyr::summarise(miss_n = 600 - sum(w_aval), nout = sum(range_out))
-  
- 
-  
   dt_mi <- dt_norm%>%
     dplyr::left_join(dt4%>%
                        dplyr::select(pat_id, trt, u1, u2),
@@ -195,11 +182,20 @@ x1 <- parallel::mclapply(X = 1:100,
   
   mi_sum1 <- dt_mi%>%
     dplyr::group_by(trt, m_num)%>%
-    dplyr::summarise(qhat = mean(mcda), u = var(mcda))
+    dplyr::summarise(qhat = mean(mcda), u = var(mcda), nobs = n())%>%
+    dplyr::ungroup()%>%
+    tidyr::gather('stat','val',-c(trt,m_num))%>%
+    tidyr::unite(stat,c(stat,trt))%>%
+    tidyr::spread(stat,val)%>%
+    dplyr::mutate(qhat = qhat_c - qhat_t,
+                  u = u_c/nobs_c + u_t/nobs_t)
   
-  mi_sum2 <-  mi_sum1%>%
-    dplyr::group_by(trt)%>%
-    dplyr::summarise(qbar = mean(qhat), ubar = mean(u), b = var(qhat))
+  mi_res <-  mi_sum1%>%
+    dplyr::summarise(qbar = mean(qhat), ubar = mean(u), b = var(qhat))%>%
+    dplyr::mutate(t = ubar + (1 + 1/5)*b,
+                  v = (5-1)*(t/((1 + 1/5)*b))^2,
+                  lb = qbar - qt(1 - 0.025, v)*sqrt(t),
+                  ub = qbar + qt(1 - 0.025, v)*sqrt(t))
   
     
   ###add more checks:
@@ -207,18 +203,10 @@ x1 <- parallel::mclapply(X = 1:100,
     dt4%>%
     dplyr::group_by(dis_cat)%>%
     dplyr::summarise(per = n()/length(dt4$dis_cat))
-  
 
-  #normality assumption for the full data
-  sh_test <- shapiro.test(residuals(lm(mcda ~ trt + as.factor(dis_cat) + age, dt4)))$p.value
-  sh_testw2 <- shapiro.test(dt4$w2)$p.value
-  
-
-  
-  out <- list(ch_ble1, ch_bls1_c, ch_bls1_t, ch_out, w2_ch, res_all, dis_dis, res_waval, 
-              rout, sh_test, sh_testw2)%>%
+    out <- list(ch_ble1, ch_bls1_c, ch_bls1_t, ch_out, w2_ch, res_all, dis_dis, res_waval, mi_res)%>%
     purrr::set_names(c("ch_ble1","ch_bls1_c","ch_bls1_t","ch_out", 'w2_ch', 
-                       'res_all', 'dis_dis', 'res_waval', 'rout', "sh_test","sh_testw2"))
+                       'res_all', 'dis_dis', 'res_waval', "mi_res"))
   
   })
  
@@ -231,6 +219,7 @@ check_sim(x1, ch ='w2')%>%dplyr::summarise_at(.vars = c('age_est','dis2v1_est','
 
 bra_comp(x1)%>%dplyr::group_by(infavor)%>%dplyr::summarise(n())
 bra_comp(x1, all_w = FALSE)%>%dplyr::group_by(infavor)%>%dplyr::summarise(n())
+bra_comp(x1, mi = TRUE)%>%dplyr::group_by(infavor)%>%dplyr::summarise(n())
 
 
 x1%>%purrr::map_df(.f = function(x) {

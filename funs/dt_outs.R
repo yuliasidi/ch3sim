@@ -1,16 +1,38 @@
-dt_outs <- function(dt, e1_mean, e1_sd, b1_e1, s1_mean, b1_s1, b2_s1 ){
+dt_outs <- function(dt, b1 = 0, b2 = 0, b3 = 0, b1cov = 'age_bl', b2cov, b3cov = '',
+                    out_m, out_sd = 0, type = c('prop', 'cont')){
   
-  #define intercepts to be used in the outcome models below
-  int_e1 <- e1_mean - b1_e1*mean(dt$dis_st)
-  int_s1 <- log(s1_mean/(1 - s1_mean)) - b1_s1*mean(dt$dis_st) - 
-    b2_s1*mean(dt$age)
+ if (type=='cont'){
+   int <- out_m - b1*mean(dt[[b1cov]]) - b2*mean(dt[[b2cov]])
+   
+   dt1 <- dt%>%
+     dplyr::mutate(out_mu = int + b1*!!rlang::sym(b1cov) + b2*!!rlang::sym(b2cov),
+                   out = stats::rnorm(n = dplyr::n(), mean = out_mu, sd = out_sd))%>%
+     dplyr::select(-out_mu)
+   
+   
+ }
+
+  if (type=='prop'){
+    if (b3==0){
+      int <- log(out_m/(1-out_m)) - b1*mean(dt[[b1cov]]) - b2*mean(dt[[b2cov]])
+      
+      dt1 <- dt%>%
+        dplyr::mutate(out_mu = 1/(1 + exp( - int - b1*!!rlang::sym(b1cov) - b2*!!rlang::sym(b2cov))),
+                      out = stats::rbinom(dplyr::n(), 1, out_mu))%>%
+        dplyr::select(-out_mu)
+    }
+    else{
+      int <- log(out_m/(1-out_m)) - b1*mean(dt[[b1cov]]) - b2*mean(dt[[b2cov]]) -
+        b3*mean(dt[[b3cov]])
+      
+      dt1 <- dt%>%
+        dplyr::mutate(out_mu = 1/ (1 + exp(- int - b1*!!rlang::sym(b1cov) - b2*!!rlang::sym(b2cov) - 
+                      b3*!!rlang::sym(b3cov))),
+                      out = stats::rbinom(dplyr::n(), 1, out_mu))%>%
+        dplyr::select(-out_mu)
+    }
+    
+  }
   
-  dt1 <- dt%>%
-    dplyr::mutate(mu_e1 =  int_e1 + b1_e1*dis_st,
-                  e1 = rnorm(n = dplyr::n(), mean = mu_e1, sd = e1_sd),
-                  mu_s1 = 1/(1+exp(- int_s1 - b1_s1*dis_st - b2_s1*age)),
-                  s1 = rbinom(dplyr::n(), 1, mu_s1))#%>%
-    #dplyr::select(-c(mu_e1, mu_s1))
-  
-  
+ return(dt1) 
   }
