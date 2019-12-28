@@ -24,7 +24,7 @@ mu_c <- matrix(c(bcva_bl_m, age_bl_m, cst_bl_m_c, srf_bl_c, irf_bl, rpe_bl_c, ma
 
 
 
-x1 <- parallel::mclapply(X = 1:1000,
+x1 <- parallel::mclapply(X = 1:100,
                          mc.cores = 7,
                          FUN = function(x){
                            
@@ -149,7 +149,7 @@ x1 <- parallel::mclapply(X = 1:1000,
                                             out_m = da_16w_t, 
                                             type = 'prop'),
                                  purrr::map(data, dt_outs, 
-                                            b1 = 0.04, 
+                                            b1 = 0.02, 
                                             b2 = -0.01,
                                             b2cov = 'bcva_bl',
                                             out_m = da_16w_c, 
@@ -258,7 +258,17 @@ x1 <- parallel::mclapply(X = 1:1000,
     tidyr::unnest()%>%
     dplyr::rename(ll = out)
   
-  dt_out <- dt_out10
+  #categorise bcva_bl, age_bl and cst_bl using HAWK definitions presented in the baseline characteristics
+  dt_out <- dt_out10%>%
+    dplyr::mutate(
+                  bcvac_bl = case_when(bcva_bl <= 55 ~ 'low',
+                                       bcva_bl >= 71 ~ 'high',
+                                       TRUE ~ 'med'),
+                  bcvac_bl = factor(bcvac_bl,levels = c('low','med','high')),
+                  agec_bl = cut(age_bl,c(0,65,75,85,95),include.lowest = TRUE,right = FALSE),
+                  cstc_bl = case_when(cst_bl < 400 ~'low', TRUE ~ 'high'),
+                  cstc_bl = factor(cstc_bl,levels = c('low','high'))
+                  )
   ####### simulation checks #######
   
   #check simulated BL data
@@ -286,16 +296,21 @@ x1 <- parallel::mclapply(X = 1:1000,
                     check_bl_fun_out,
                     dt = dt_out)
   
-  out <- list(dt_bl, check_val_bl, check_cor_bl, check_val_out, check_cor_val)%>%
-    purrr::set_names("dt_bl", "check_val_bl", "check_cor_bl", "check_val_out", "check_cor_val")
-  return(out)
+  out <- list(dt_out, check_val_bl, check_cor_bl, check_val_out, check_cor_val)%>%
+    purrr::set_names("dt_out", "check_val_bl", "check_cor_bl", "check_val_out", "check_cor_val")
+ 
+   return(out)
   
 })
+
 
 source("funs/check_sim.R")
 
 check_sim(x1, ch = "bl_val")
 check_sim(x1, ch = "bl_cor")
 check_sim(x1, ch = "out")
+
+#d in the below df represents difference of the mean values of var2 for subjects with 1 and with 0 in var1
+#for example subjects who experience aes tend to be older than subjects who don't
 ch_out_cor <- check_sim(x1, ch = "out_cor")
 

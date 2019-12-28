@@ -45,7 +45,7 @@ check_sim <- function(dt, ch = c('bl_val','bl_cor', 'out','w2')){
                     ch_sae_noc = round(sae_noc - ifelse(trt == 't', sae_noc_t , sae_noc_c),4),
                     ch_sae_oc  = round(sae_oc  - ifelse(trt == 't', sae_oc_t , sae_oc_c), 4),
                     ch_ll      = round(ll      - ifelse(trt == 't', ll_t , ll_c), 4))%>%
-      dplyr::select(dplyr::starts_with('ch'))
+      dplyr::select(trt, dplyr::starts_with('ch'))
     
     
 
