@@ -1,11 +1,11 @@
-pvf <- function(var, best, worst, type = c('benefit','risk')){
+pvf <- function(var, high, low, type = c('benefit','risk')){
   
   if(type == 'benefit'){
-    (var - worst) / (best - worst)  
+    (var - low) / (high - low)  
   }
-  
+
   else{
-    (worst - var) / (worst - best)  
+    (high - var) / (high - low)  
   }
   
   
