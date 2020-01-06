@@ -1,6 +1,6 @@
 
 #correlations between BL values
-
+bi_corr_vals <- function(){
 #BCVA decreases with age
 rho_bcva_age <- -0.4
 
@@ -17,9 +17,12 @@ rho_age_irf <- 0.4
 rho_age_rpe <- 0.4
 
 #fluid variables have positive pairwise corr among themselve (set the same value for all)
-rho_cst_srf <- 0.6
-rho_cst_irf <- 0.6
-rho_cst_rpe <- 0.6
-rho_srf_irf <- 0.6
-rho_srf_rpe <- 0.6
-rho_irf_rpe <- 0.6
+rho_cst_srf <- 0
+rho_cst_irf <- 0
+rho_cst_rpe <- 0
+rho_srf_irf <- 0
+rho_srf_rpe <- 0
+rho_irf_rpe <- 0
+
+setNames(lapply(ls(),function(x,e) get(x = x,envir = e),e = environment()),ls())
+}

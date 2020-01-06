@@ -1,0 +1,20 @@
+#!/bin/bash
+#!/bin/bash
+#SBATCH -p general
+#SBATCH -n {{n}}
+#SBATCH --nodes=1
+#SBATCH --time={{time}}
+#SBATCH --output=/home/yus16116/ch3-results.log
+#SBATCH --error=/home/yus16116/ch3-results.err
+#SBATCH --mail-type=ALL  # Event(s) that triggers email notification (BEGIN,END,FAIL,ALL)
+#SBATCH --mail-user=yulia.sidi@uconn.edu      # Destination email address
+
+
+source /etc/profile.d/modules.sh
+module purge
+module load gcc/5.4.0-alt r/3.5.1-openblas-gcc540 mpi/openmpi/1.10.1-gcc
+
+# If MPI tells you that forking is bad uncomment the line below 
+export OMPI_MCA_mpi_warn_on_fork=0
+
+Rscript {{rfile}}

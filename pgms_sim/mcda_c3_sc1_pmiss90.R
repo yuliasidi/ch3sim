@@ -18,17 +18,19 @@ v1_w1_mu  <- c(80, 50, 20)
 v1_w1_sd  <- rep(5, 3)
 v1_w2_mu <- c(20, 60, 80)
 v1_w2_sd <- rep(5, 3)
+v1_w3_mu <- c(40, 80)
+v1_w3_sd <- rep(5, 2)
 
-p_w100 <- c(0.5, 0.5)
+p_w100 <- c(0.4, 0.3, 0.3)
 p_miss <- 0.9
 
-#scenario 1: only two weights- BCVA and non-ocular AEs
-#both weights are defined only as a function of BCVA at BL
-#mean and sds per weight
+#scenario: three weights- BCVA, CST and non-ocular AEs
+#BCVA and non-ocular AEs are defined as a function of BCVA at BL
+#CST is defined as a function of CST at BL
 
-system.time({
-x1 <- parallel::mclapply(X = 1:50,
-                         mc.cores = 7,
+
+x1 <- parallel::mclapply(X = 1:1000,
+                         mc.cores = 24,
                          FUN = function(i){
                            
 #generate simulated data to be used with weights
@@ -41,9 +43,10 @@ dt_out <- dt_sim()
 #weights specification
 w1_spec <- weight_define_each(data = dt_out, name_weight = 'bcva_48w', br_spec = 'benefit', 'bcvac_bl', w_mu = v1_w1_mu, w_sd = v1_w1_sd)
 w2_spec <- weight_define_each(data = dt_out, name_weight = 'ae_noc', br_spec = 'risk', 'bcvac_bl', w_mu = v1_w2_mu, w_sd = v1_w2_sd)
+w3_spec <- weight_define_each(data = dt_out, name_weight = 'cst_16w', br_spec = 'risk', 'cstc_bl', w_mu = v1_w3_mu, w_sd = v1_w3_sd)
 
 #cobmine weights into one data and specify probability to assign 100 to each weight
-l <- make_spec(w1_spec, w2_spec, p100_weights = p_w100)
+l <- make_spec(w1_spec, w2_spec, w3_spec, p100_weights = p_w100)
 
 #assign initial weights based on the mean/sd specification provided by the user
 dt_w <- assign_weights(data = dt_out, w_spec = l)
@@ -63,7 +66,9 @@ mcda_test_all <- stats::t.test(dt_final[dt_final[, 'trt'] == 'c','mcda'], dt_fin
 mcda_test_obs <- stats::t.test(dt_final[dt_final[, 'trt'] == 'c' & dt_final[, 'miss'] == 0, 'mcda'], 
                                dt_final[dt_final[, 'trt'] == 't' & dt_final[, 'miss'] == 0, 'mcda'])
 
-mcda_test_mi <- mi_weights(data = dt_final, vars_bl = c('bcva_bl', 'age_bl'), w_spec = l, num_m = 10, mi_method = 'norm')
+mcda_test_mi <- mi_weights(data = dt_final, 
+                           vars_bl = c('bcva_bl', 'age_bl', 'sex', 'cst_bl', 'srf', 'irf', 'rpe'),
+                           w_spec = l, num_m = 10, mi_method = 'norm')
 
 #summarise the br results
 br_result <- tibble::tibble(res = ifelse(mcda_test_all$conf.int[2] < 0, 'benefit', 'no benefit'),
@@ -82,9 +87,5 @@ return(out)
 
 })
 
-})
-x1%>%
-  purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
-  dplyr::group_by(meth, res)%>%
-  dplyr::summarise(pp = n()/length(x1))
- 
+
+saveRDS(x1, 'mcda_results/mcda_c3_sc1_pmiss90.rds')

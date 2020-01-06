@@ -1,4 +1,5 @@
-mi_weights <- function(data, vars_bl, w_spec, num_m, mi_method = 'norm', n_iter = 20){
+mi_weights <- function(data, vars_bl, w_spec, num_m, mi_method = 'norm', 
+                       n_iter = 20, trunc_range = TRUE){
   
   for (wnum in seq_along(w_spec)){
     data[, sprintf('w_%02d', wnum)] <- ifelse(data[, 'miss'] == 1, 
@@ -15,19 +16,31 @@ mi_weights <- function(data, vars_bl, w_spec, num_m, mi_method = 'norm', n_iter 
   predM <- mice::make.predictorMatrix(data)
   predM[, names(data)[!names(data) %in% c(grep('^w_', names(data), value = T), vars_bl)]] <- 0
   
-  post <- mice::make.post(data) 
-  for (wnum in seq_along(w_spec)){
-    post[sprintf('w_%02d', wnum)] <- 
-      "imp[[j]][, i] <- squeeze(imp[[j]][, i], c(0, 100))"
+  if (trunc_range){
+    post <- mice::make.post(data) 
+    for (wnum in seq_along(w_spec)){
+      post[sprintf('w_%02d', wnum)] <- 
+        "imp[[j]][, i] <- squeeze(imp[[j]][, i], c(0, 100))"
+    }
+    
+    mice_out <- mice::mice(data =  data, 
+                           m = num_m,
+                           predictorMatrix = predM,
+                           method = mi_method,
+                           maxit = n_iter,
+                           printFlag = FALSE,
+                           post = post)
+  }
+  else {
+    mice_out <- mice::mice(data =  data, 
+                           m = num_m,
+                           predictorMatrix = predM,
+                           method = mi_method,
+                           maxit = n_iter,
+                           printFlag = FALSE)
+
   }
   
-  mice_out <- mice::mice(data =  data, 
-                         m = num_m,
-                         predictorMatrix = predM,
-                         method = mi_method,
-                         maxit = n_iter,
-                         printFlag = FALSE,
-                         post = post)
   
   per_m_sum <- tibble::tibble(m = seq(1, num_m, 1))
   for( i in 1:num_m){

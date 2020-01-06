@@ -26,9 +26,9 @@ p_miss <- 0.9
 #both weights are defined only as a function of BCVA at BL
 #mean and sds per weight
 
-system.time({
-x1 <- parallel::mclapply(X = 1:50,
-                         mc.cores = 7,
+
+x1 <- parallel::mclapply(X = 1:1000,
+                         mc.cores = 20,
                          FUN = function(i){
                            
 #generate simulated data to be used with weights
@@ -63,7 +63,9 @@ mcda_test_all <- stats::t.test(dt_final[dt_final[, 'trt'] == 'c','mcda'], dt_fin
 mcda_test_obs <- stats::t.test(dt_final[dt_final[, 'trt'] == 'c' & dt_final[, 'miss'] == 0, 'mcda'], 
                                dt_final[dt_final[, 'trt'] == 't' & dt_final[, 'miss'] == 0, 'mcda'])
 
-mcda_test_mi <- mi_weights(data = dt_final, vars_bl = c('bcva_bl', 'age_bl'), w_spec = l, num_m = 10, mi_method = 'norm')
+mcda_test_mi <- mi_weights(data = dt_final, 
+                           vars_bl = c('bcva_bl', 'age_bl', 'sex', 'cst_bl', 'srf', 'irf', 'rpe'),
+                           w_spec = l, num_m = 10, mi_method = 'norm')
 
 #summarise the br results
 br_result <- tibble::tibble(res = ifelse(mcda_test_all$conf.int[2] < 0, 'benefit', 'no benefit'),
@@ -82,9 +84,5 @@ return(out)
 
 })
 
-})
-x1%>%
-  purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
-  dplyr::group_by(meth, res)%>%
-  dplyr::summarise(pp = n()/length(x1))
- 
+
+saveRDS(x1, 'mcda_results/mcda_c2_sc1_pmiss90.rds')

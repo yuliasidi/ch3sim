@@ -1,34 +1,34 @@
-library(dplyr, warn.conflicts = F, quietly = T)
-
-#the reported ss was 297 without taking into account drop-out rate
-n_arm <- 300
-
-#BL and outcome values based on HAWK data
 source("dt_vals.R")
-
-#correlations between BL variables, self-defined
 source("bl_corr_vals.R")
-
-#sigma matrix using the above values and correlaitons
 source("sigma_matrix.R")
-
 source("funs/dt_bl.R")
 source("funs/dt_outs.R")
 source("funs/check_bl_fun_out.R")
+library(magrittr)
 
+make_list <- function(){
+  ls_x <- ls(envir = parent.frame())
+  setNames(lapply(ls_x,function(x,e) get(x = x,envir = e),e = parent.frame()),ls_x) 
+}
 
-
-#define mu_t/mu_c for MASS::mvrnorm used in dt_bl function
-mu_t <- matrix(c(bcva_bl_m, age_bl_m, cst_bl_m_t, srf_bl_t, irf_bl, rpe_bl_t, male_t))
-mu_c <- matrix(c(bcva_bl_m, age_bl_m, cst_bl_m_c, srf_bl_c, irf_bl, rpe_bl_c, male_c))
-
-
-
-x1 <- parallel::mclapply(X = 1:1000,
-                         mc.cores = 7,
-                         FUN = function(x){
-                           
-  set.seed(888*x)
+dt_sim <- function(){
+  
+  #the reported ss was 297 without taking into account drop-out rate
+  n_arm <- 300
+  
+  #BL and outcome values based on HAWK data
+  list2env(dt_vals(),envir = environment())
+  
+  #correlations between BL variables, self-defined
+  list2env(bi_corr_vals(),envir = environment())
+  
+  #sigma matrix using the above values and correlaitons
+  list2env(sigma_matrix(make_list()),envir = environment())
+  
+  #define mu_t/mu_c for MASS::mvrnorm used in dt_bl function
+  mu_t <- matrix(c(bcva_bl_m, age_bl_m, cst_bl_m_t, srf_bl_t, irf_bl, rpe_bl_t, male_t))
+  mu_c <- matrix(c(bcva_bl_m, age_bl_m, cst_bl_m_c, srf_bl_c, irf_bl, rpe_bl_c, male_c))
+  
   
   ####################                                                    
   # simulate BL data #
@@ -88,7 +88,7 @@ x1 <- parallel::mclapply(X = 1:1000,
     dplyr::select(-data)%>%
     tidyr::unnest()%>%
     dplyr::rename(cst_16w = out)
-
+  
   #srf/irf outcome
   # for higher levels of SRF/IRF it would be easier to improve b2/b3 should 
   # be negative
@@ -114,7 +114,7 @@ x1 <- parallel::mclapply(X = 1:1000,
     dplyr::select(-data)%>%
     tidyr::unnest()%>%
     dplyr::rename(sirf_16w = out)
-
+  
   #rpe outcome
   # for higher levels of RPE it would be easier to improve b2 should 
   # be negative
@@ -136,7 +136,7 @@ x1 <- parallel::mclapply(X = 1:1000,
     dplyr::select(-data)%>%
     tidyr::unnest()%>%
     dplyr::rename(rpe_16w = out)
- 
+  
   #disease activity outcome- I decided to define it as a function of BCVA and age at BL 
   # patients with higher BCVA should have less DA -> b2 is negative
   dt_out5 <- dt_out4%>%
@@ -261,14 +261,15 @@ x1 <- parallel::mclapply(X = 1:1000,
   #categorise bcva_bl, age_bl and cst_bl using HAWK definitions presented in the baseline characteristics
   dt_out <- dt_out10%>%
     dplyr::mutate(
-                  bcvac_bl = case_when(bcva_bl <= 55 ~ 'low',
-                                       bcva_bl >= 71 ~ 'high',
-                                       TRUE ~ 'med'),
-                  bcvac_bl = factor(bcvac_bl,levels = c('low','med','high')),
-                  agec_bl = cut(age_bl,c(0,65,75,85,95),include.lowest = TRUE,right = FALSE),
-                  cstc_bl = case_when(cst_bl < 400 ~'low', TRUE ~ 'high'),
-                  cstc_bl = factor(cstc_bl,levels = c('low','high'))
-                  )
+      bcvac_bl = dplyr::case_when(bcva_bl <= 55 ~ 'low',
+                                  bcva_bl >= 71 ~ 'high',
+                                  TRUE ~ 'med'),
+      bcvac_bl = factor(bcvac_bl,levels = c('low','med','high')),
+      agec_bl = cut(age_bl,c(0,65,75,85,95),include.lowest = TRUE,right = FALSE),
+      cstc_bl = dplyr::case_when(cst_bl < 400 ~'low', TRUE ~ 'high'),
+      cstc_bl = factor(cstc_bl,levels = c('low','high'))
+    )
+  
   ####### simulation checks #######
   
   #check simulated BL data
@@ -290,16 +291,18 @@ x1 <- parallel::mclapply(X = 1:1000,
   
   check_cor_val <- 
     purrr::map2_df( c('irf', 'srf', 'rpe', 'da_16w', 'sirf_16w', 'sirf_16w', 
-                      'rpe_16w', 'da_16w', 'ae_noc', 'ae_oc', 'sae_noc', 'sae_oc', 'll', 'll'),
+                      'rpe_16w', 'da_16w', 'ae_noc', 'ae_oc', 'sae_noc', 'sae_oc', 'll', 'll',
+                      'irf', 'irf', 'srf'),
                     c('sirf_16w', 'sirf_16w', 'rpe_16w', 'bcva_bl', 'age_bl', 'age_bl', 
-                      'age_bl', 'age_bl', 'age_bl', 'bcva_bl', 'age_bl', 'bcva_bl', 'age_bl', 'bcva_bl'),
+                      'age_bl', 'age_bl', 'age_bl', 'bcva_bl', 'age_bl', 'bcva_bl', 'age_bl', 'bcva_bl',
+                      'srf', 'rpe', 'rpe'),
                     check_bl_fun_out,
                     dt = dt_out)
   
   bcva_bl_cat <- dt_out%>%
     dplyr::group_by(bcvac_bl)%>%
     dplyr::summarise(n = n())
-
+  
   age_bl_cat <- dt_out%>%
     dplyr::group_by(agec_bl)%>%
     dplyr::summarise(n = n())
@@ -313,13 +316,37 @@ x1 <- parallel::mclapply(X = 1:1000,
               bcva_bl_cat, age_bl_cat, cst_bl_cat)%>%
     purrr::set_names("dt_out", "check_val_bl", "check_cor_bl", "check_val_out", "check_cor_val", 
                      "bcva_bl_cat", "age_bl_cat", "cst_bl_cat")
- 
-   return(out)
   
+  return(out)
+}
+
+
+system.time({
+x1 <- parallel::mclapply(X = 1:1000,
+                         mc.cores = 7,
+                         FUN = function(i){
+     
+     #generate simulated data to be used with weights
+     
+     set.seed(888*i)
+                     
+    dt_sim()
+                         })
+                           
 })
 
-
 source("funs/check_sim.R")
+
+n_arm <-300
+
+#BL and outcome values based on HAWK data
+list2env(dt_vals(),envir = environment())
+
+#correlations between BL variables, self-defined
+list2env(bi_corr_vals(),envir = environment())
+
+#sigma matrix using the above values and correlaitons
+list2env(sigma_matrix(make_list()),envir = environment())
 
 check_sim(x1, ch = "bl_val")
 check_sim(x1, ch = "bl_cor")

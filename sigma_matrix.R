@@ -1,3 +1,7 @@
+sigma_matrix <- function(x){
+  
+list2env(x,envir = environment())  
+
 #define sigma matrix for MASS::mvrnorm for trt = t
 s_t <- sqrt(srf_bl_t*(1 - srf_bl_t)/n_arm) 
 i_t <- sqrt(irf_bl*(1 - irf_bl)/n_arm)
@@ -38,3 +42,6 @@ smat_c <- matrix(c(bcva_bl_sd^2, rho_bcva_age*bcva_bl_sd*age_bl_sd, rho_bcva_cst
                    rho_bcva_rpe*bcva_bl_sd*r_c, rho_age_rpe*age_bl_sd*r_c, rho_cst_rpe*cst_bl_sd_c*r_c,
                    rho_srf_rpe*s_c*r_c, rho_irf_rpe*i_c*r_c, r_c^2, 0,
                    0, 0, 0, 0, 0, 0, sex_c^2), 7, 7, byrow = T)
+
+setNames(lapply(ls(),function(x,e) get(x = x,envir = e),e = environment()),ls())
+}

@@ -5,7 +5,7 @@ assign_weights <- function(data, w_spec){
   
   for(i in seq_along(w_spec)){
     
-    dt_w <- dplyr::left_join(dt_w, w_spec[[i]][ , !(names(w_spec[[i]]) %in% c('p100_weights'))])
+    dt_w <- suppressMessages(dplyr::left_join(dt_w, w_spec[[i]][ , !(names(w_spec[[i]]) %in% c('p100_weights'))]))
     
     for (id in seq_len(nrow(dt_w))){
       

@@ -7,10 +7,12 @@
 #################################
 # BL values based on appendix 6 #
 #################################
+dt_vals <- function(){
 
 #BCVA
 bcva_bl_m <- 61
 bcva_bl_sd <- 14
+
 #age
 age_bl_m <- 77
 age_bl_sd <- 9
@@ -84,11 +86,6 @@ sae_noc_c <- 0.19
 ll_t <- 0.064
 ll_c <- 0.055
 
-  
+setNames(lapply(ls(),function(x,e) get(x = x,envir = e),e = environment()),ls())
 
-
-
-
-
-
-
+}
