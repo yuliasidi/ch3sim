@@ -1,10 +1,10 @@
 mi_weights <- function(data, vars_bl, w_spec, num_m, mi_method = 'norm', 
-                       n_iter = 20, trunc_range = TRUE){
+                       n_iter = 20, trunc_range = TRUE, n_leaves = 10){
   
   for (wnum in seq_along(w_spec)){
-    data[, sprintf('w_%02d', wnum)] <- ifelse(data[, 'miss'] == 1, 
+    data[, sprintf('w_%02d', wnum)] <- ifelse(data[, 'miss'][[1]] == 1, 
                                               NA, 
-                                              data[, sprintf('w_%02d', wnum)])  
+                                              data[, sprintf('w_%02d', wnum)][[1]])  
     
     data[, sprintf('u_%02d', wnum)] <- NULL
     data[, sprintf('w_%02d_norm', wnum)] <- NULL
@@ -29,22 +29,24 @@ mi_weights <- function(data, vars_bl, w_spec, num_m, mi_method = 'norm',
                            method = mi_method,
                            maxit = n_iter,
                            printFlag = FALSE,
-                           post = post)
-  }
-  else {
+                           post = post,
+                           minbucket = n_leaves)
+  }else{
     mice_out <- mice::mice(data =  data, 
                            m = num_m,
                            predictorMatrix = predM,
                            method = mi_method,
                            maxit = n_iter,
-                           printFlag = FALSE)
+                           printFlag = FALSE,
+                           minbucket = n_leaves)
 
   }
   
   
   per_m_sum <- tibble::tibble(m = seq(1, num_m, 1))
   for( i in 1:num_m){
-    dt_tmp <- mice::complete(mice_out, i)
+    dt_tmp <- mice::complete(mice_out, i)%>%
+      tibble::as_tibble()
     dt_tmp <- pvf_apply(data = dt_tmp, w_spec =  w_spec)
     
     per_m_sum[i, 'qhat'] <- mean(dt_tmp$mcda[dt_tmp$trt=='c']) - mean(dt_tmp$mcda[dt_tmp$trt=='t'])

@@ -15,13 +15,13 @@ source('funs/mi_weights.R')
 #assume that PE weights are affected only by BCVA at BL
 #patients who have lower BCVA at BL would have higher weights on average that patients who have higher 
 #BCVA values at BL 
-v1_w1_mu  <- c(70, 50, 30) 
+v1_w1_mu  <- c(80, 60, 40) 
 v1_w1_sd  <- rep(5, 3)
 
 #assume that AEs weights are affected by sex, and that women would have lower weights than men 
-v1_w2_mu <- c(50, 80)
+v1_w2_mu <- c(30, 60)
 v1_w2_sd <- rep(5, 2)
-v1_w3_mu <- c(70, 90)
+v1_w3_mu <- c(30, 60)
 v1_w3_sd <- rep(5, 2)
 
 p_miss <- 0.9
@@ -29,12 +29,12 @@ p_miss <- 0.9
 #scenario: three weights- BCVA, and AEs
 #BCVA is defined as a function of BCVA at BL
 #AEs are defined as a function of sex
-#Scenario 2: patients care more about non-ocular AEs than other AEs  or PE
+#Scenario 1: patients care more about PE than AEs
 
 
 
 x1 <- parallel::mclapply(X = 1:1000,
-                         mc.cores = 24,
+                         mc.cores = 20,
                          FUN = function(i){
                            
 #generate simulated data to be used with weights
@@ -71,23 +71,56 @@ mcda_test_obs <- stats::t.test(dt_final$mcda[dt_final$trt=='c' & dt_final$miss =
 mcda_test_mi <- mi_weights(data = dt_final, 
                            vars_bl = c('bcva_bl', 'age_bl', 'sex', 'cst_bl', 'srf', 'irf', 'rpe'),
                            w_spec = l, num_m = 10, mi_method = 'norm')
+###########################
+#summarise the br results #
+###########################
 
-#summarise the br results
+br_comp <- tibble::tibble(meth = 'all',
+                          mean_diff = mcda_test_all$estimate[1] - mcda_test_all$estimate[2],
+                          se_diff = mean_diff/mcda_test_all$statistic)
+
 br_result <- tibble::tibble(res = ifelse(mcda_test_all$conf.int[2] < 0, 'benefit', 'no benefit'),
                             meth = 'all')
-br_result[2, 'res']  <- ifelse(mcda_test_obs$conf.int[2] < 0, 'benefit', 'no benefit')
-br_result[2, 'meth'] <- 'obs'
-br_result[3, 'res']  <- ifelse(mcda_test_mi$qbar + qt(0.975, df = mcda_test_mi$v)*
-                                 sqrt(mcda_test_mi$t) < 0, 'benefit', 'no benefit')
-br_result[3, 'meth'] <- 'mi'
-
 br_result[, 'sim_id'] <- i
 
-out <- list(br_result)%>%purrr::set_names('br_result')
+#comparison with Wen et al 2014
+out <- numeric(10000)
+
+for (j in 1:10000){
+  
+  dt_boot <- dplyr::sample_n(dt_out, size = nrow(dt_out), replace = TRUE)
+  
+  tt1 <-dt_w%>%dplyr::group_by(bcvac_bl)%>%dplyr::summarise(perc = n()/nrow(dt_w))
+  mean_w_01 <- v1_w1_mu%*%tt1[,2][[1]]
+  
+  tt2 <- dt_w%>%dplyr::group_by(sex)%>%dplyr::summarise(perc = n()/nrow(dt_w))
+  mean_w_02 <- v1_w2_mu%*%tt2[,2][[1]]
+  mean_w_03 <- v1_w3_mu%*%tt2[,2][[1]]
+  
+  mcda_w1 <- mean_w_01[[1]]/(mean_w_01[[1]] + mean_w_02[[1]] + mean_w_03[[1]])
+  mcda_w2 <- mean_w_02[[1]]/(mean_w_01[[1]] + mean_w_02[[1]] + mean_w_03[[1]])
+  mcda_w3 <- mean_w_03[[1]]/(mean_w_01[[1]] + mean_w_02[[1]] + mean_w_03[[1]])
+  
+  
+  dt_boot_sum <-
+    dt_boot%>%
+    dplyr::group_by(trt)%>%
+    dplyr::summarise_at(c('bcva_48w', 'ae_oc', 'ae_noc'), 'mean')%>%
+    dplyr::mutate(f_v1 = (stats::quantile(dt_boot$bcva_48w, 0.975) - bcva_48w)/
+                    (stats::quantile(dt_boot$bcva_48w, 0.975) - stats::quantile(dt_boot$bcva_48w, 0.025)),
+                  f_v2 = 1 - ae_oc,
+                  f_v3 = 1 - ae_noc,
+                  mcda = f_v1*mcda_w1 + f_v2*mcda_w2 + f_v3*mcda_w3)
+  
+  out[j] <- dt_boot_sum$mcda[dt_boot_sum$trt=='c'] - dt_boot_sum$mcda[dt_boot_sum$trt=='t']
+}
+
+wen_uci <- stats::quantile(out, 0.975)    
+out <- list(br_comp, br_result, wen_uci)%>%purrr::set_names('br_comp', 'br_result', 'wen_uci')
 
 return(out)
 
 })
 
 
-saveRDS(x1, 'mcda_results/mcda_c3_sc2_pmiss90.rds')
+saveRDS(x1, 'mcda_results/mcda_c3_sc1_all_wencomp.rds')

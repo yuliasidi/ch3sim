@@ -70,7 +70,7 @@ mcda_test_obs <- stats::t.test(dt_final$mcda[dt_final$trt=='c' & dt_final$miss =
 
 mcda_test_mi <- mi_weights(data = dt_final, 
                            vars_bl = c('bcva_bl', 'age_bl', 'sex', 'cst_bl', 'srf', 'irf', 'rpe'),
-                           w_spec = l, num_m = 10, mi_method = 'norm')
+                           w_spec = l, num_m = 10, mi_method = 'cart')
 
 #summarise the br results
 br_result <- tibble::tibble(res = ifelse(mcda_test_all$conf.int[2] < 0, 'benefit', 'no benefit'),
@@ -90,4 +90,4 @@ return(out)
 })
 
 
-saveRDS(x1, 'mcda_results/mcda_c3_sc2_pmiss90.rds')
+saveRDS(x1, 'mcda_results/mcda_c3_sc2_pmiss90_cart.rds')

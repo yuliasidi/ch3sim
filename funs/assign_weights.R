@@ -22,5 +22,25 @@ assign_weights <- function(data, w_spec){
     
   }
   
+  for (id in seq_len(nrow(dt_w))){
+  
+    dt_w[id, 'max_w'] <- max(dt_w[id, grep('^w_', names(dt_w), value = T)])
+    
+  
+  }
+  
+  for(i in seq_along(w_spec)){
+  
+    for (id in seq_len(nrow(dt_w))){
+      dt_w[id, sprintf('w_%02d', i)] <- ifelse(dt_w[id, sprintf('w_%02d', i)] == dt_w[id, 'max_w'],
+                                               100,
+                                               dt_w[id, sprintf('w_%02d', i)])
+      
+    }
+    
+    
+  }
+  
+  dt_w$max_w <- NULL
   return(dt_w)
 }

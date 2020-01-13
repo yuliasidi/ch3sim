@@ -1,9 +1,140 @@
 library(dplyr)
+library(ggplot2)
 
-x1 <- readRDS('results/mcda_c2_sc1_pmiss90.rds')
-x1 <- readRDS('results/mcda_c2_sc1_pmiss90_sdhigher.rds')
-x1 <- readRDS('results/mcda_c2_sc1_pmiss90_sdlower.rds')
-x1 <- readRDS('results/mcda_c2_sc1_pmiss90_m20.rds')
+source('funs/plot_pp.R')
+######################
+# MDCA C3 Scenario 1 #
+######################
+
+setting <- list(p_miss = rep(seq(0.5, 0.9, 0.1), 3),
+                mi_method = c(rep('norm', 10), rep('cart', 5)), 
+                truncTF = c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 5))) 
+
+# setting <- list(p_miss = rep(seq(0.5, 0.9, 0.1), 1),
+#                 mi_method = rep('norm', 5), 
+#                 truncTF = c(rep(TRUE, 5))) 
+
+
+sum_c3_sc1 <- 
+  purrr::pmap_df(setting, .f = function(p_miss, mi_method, truncTF){
+  
+  xx <- readRDS(sprintf('results/mcda_c3_sc1_pmiss%d_%s%s.rds', 
+                        100*p_miss, mi_method, truncTF))
+  
+  xx%>%
+    purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
+    dplyr::group_by(meth, res)%>%
+    dplyr::summarise(pp = n()/length(xx))%>%
+    dplyr::ungroup()%>%
+    dplyr::mutate(p_obs = 1 - p_miss,
+                  mi_method = mi_method,
+                  truncTF = truncTF,
+                  meth = ifelse(meth!='mi', meth, paste(mi_method, 'trunc =', truncTF)))%>%
+    dplyr::filter(res=='benefit')
+})%>%
+  dplyr::filter(!(meth=='obs'&truncTF))%>%
+  dplyr::mutate(
+    p_obs = scales::percent(p_obs, accuracy = 1))
+
+plot_sum_c3_sc1 <- plot_pp(sum_c3_sc1)
+
+######################
+# MDCA C3 Scenario 2 #
+######################
+
+setting <- list(p_miss = rep(seq(0.5, 0.9, 0.1), 3),
+                mi_method = c(rep('norm', 10), rep('cart', 5)), 
+                truncTF = c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 5))) 
+
+sum_c3_sc2 <- 
+  purrr::pmap_df(setting, .f = function(p_miss, mi_method, truncTF){
+    
+    xx <- readRDS(sprintf('results/mcda_c3_sc2_pmiss%d_%s%s.rds', 
+                          100*p_miss, mi_method, truncTF))
+    
+    xx%>%
+      purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
+      dplyr::group_by(meth, res)%>%
+      dplyr::summarise(pp = n()/length(xx))%>%
+      dplyr::ungroup()%>%
+      dplyr::mutate(p_obs = 1 - p_miss,
+                    mi_method = mi_method,
+                    truncTF = truncTF,
+                    meth = ifelse(meth!='mi', meth, paste(mi_method, 'trunc =', truncTF)))%>%
+      dplyr::filter(res=='benefit')
+  })%>%
+  dplyr::filter(!(meth=='obs'&truncTF))%>%
+  dplyr::mutate(
+    p_obs = scales::percent(p_obs, accuracy = 1))
+
+plot_sum_c3_sc2 <- plot_pp(sum_c3_sc2)
+
+######################
+# MDCA C4 Scenario 1 #
+######################
+
+setting <- list(p_miss = rep(seq(0.5, 0.9, 0.1), 3),
+                mi_method = c(rep('norm', 10), rep('cart', 5)), 
+                truncTF = c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 5))) 
+
+sum_c4_sc1 <- 
+  purrr::pmap_df(setting, .f = function(p_miss, mi_method, truncTF){
+    
+    xx <- readRDS(sprintf('results/mcda_c4_sc1_pmiss%d_%s%s.rds', 
+                          100*p_miss, mi_method, truncTF))
+    
+    xx%>%
+      purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
+      dplyr::group_by(meth, res)%>%
+      dplyr::summarise(pp = n()/length(xx))%>%
+      dplyr::ungroup()%>%
+      dplyr::mutate(p_obs = 1 - p_miss,
+                    mi_method = mi_method,
+                    truncTF = truncTF,
+                    meth = ifelse(meth!='mi', meth, paste(mi_method, 'trunc =', truncTF)))%>%
+      dplyr::filter(res=='benefit')
+  })%>%
+  dplyr::filter(!(meth=='obs'&truncTF))%>%
+  dplyr::mutate(
+    p_obs = scales::percent(p_obs, accuracy = 1))
+
+plot_sum_c4_sc1 <- plot_pp(sum_c4_sc1)
+
+
+
+######################
+# MDCA C4 Scenario 2 #
+######################
+
+setting <- list(p_miss = rep(seq(0.5, 0.9, 0.1), 3),
+                mi_method = c(rep('norm', 10), rep('cart', 5)), 
+                truncTF = c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 5))) 
+
+sum_c4_sc2 <- 
+  purrr::pmap_df(setting, .f = function(p_miss, mi_method, truncTF){
+    
+    xx <- readRDS(sprintf('results/mcda_c4_sc2_pmiss%d_%s%s.rds', 
+                          100*p_miss, mi_method, truncTF))
+    
+    xx%>%
+      purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
+      dplyr::group_by(meth, res)%>%
+      dplyr::summarise(pp = n()/length(xx))%>%
+      dplyr::ungroup()%>%
+      dplyr::mutate(p_obs = 1 - p_miss,
+                    mi_method = mi_method,
+                    truncTF = truncTF,
+                    meth = ifelse(meth!='mi', meth, paste(mi_method, 'trunc =', truncTF)))%>%
+      dplyr::filter(res=='benefit')
+  })%>%
+  dplyr::filter(!(meth=='obs'&truncTF))%>%
+  dplyr::mutate(
+    p_obs = scales::percent(p_obs, accuracy = 1))
+
+plot_sum_c4_sc2 <- plot_pp(sum_c4_sc2)
+
+
+x1 <- readRDS('results/mcda_c3_sc2_pmiss90_all_wencomp.rds')
 
 x1%>%
   purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
@@ -11,20 +142,23 @@ x1%>%
   dplyr::summarise(pp = n()/length(x1))%>%
   dplyr::filter(res=='benefit')
 
-do_rates <- seq(50, 90, 10)
+xx <- x1%>%
+  purrr::map_dbl(.f = function(x) x$wen_uci)
+mean(ifelse(xx < 0, 1, 0))
 
 
-sum <- 
-  purrr::map_df(do_rates, .f = function(y){
-  
-  xx <- readRDS(sprintf('results/mcda_c2_sc1_pmiss%d.rds', y))
-  
-  xx%>%
-    purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
-    dplyr::group_by(meth, res)%>%
-    dplyr::summarise(pp = n()/length(xx))%>%
-    dplyr::mutate(dor = y)%>%
-    dplyr::filter(res=='benefit')
-})
 
+x1 <- readRDS('results/mcda_c3_sc1_pmiss90_normFALSE.rds')
+x2 <- readRDS('results/mcda_c3_sc1_pmiss90_normTRUE.rds')
+x3 <- readRDS('results/mcda_c3_sc1_pmiss90_cartTRUE.rds')
 
+x1%>%
+  purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
+  dplyr::group_by(meth, res)%>%
+  dplyr::summarise(pp = n()/length(x1))%>%
+  dplyr::filter(res=='benefit')
+
+x2 <- x1%>%
+  purrr::map_df(.f = function(x) x$br_comp, .id = 'sim')%>%
+  filter(meth=='mi')
+hist(x2$se_diff)  

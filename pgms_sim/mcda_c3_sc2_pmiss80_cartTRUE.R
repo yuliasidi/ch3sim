@@ -16,20 +16,20 @@ source('funs/mi_weights.R')
 #patients who have lower BCVA at BL would have higher weights on average that patients who have higher 
 #BCVA values at BL 
 v1_w1_mu  <- c(70, 50, 30) 
-v1_w1_sd  <- rep(5, 3)
+v1_w1_sd  <- rep(7, 3)
 
 #assume that AEs weights are affected by sex, and that women would have lower weights than men 
 v1_w2_mu <- c(50, 80)
-v1_w2_sd <- rep(5, 2)
+v1_w2_sd <- rep(7, 2)
 v1_w3_mu <- c(70, 90)
-v1_w3_sd <- rep(5, 2)
+v1_w3_sd <- rep(7, 2)
 
-p_miss <- 0.9
+p_miss <- 0.8
 
 #scenario: three weights- BCVA, and AEs
 #BCVA is defined as a function of BCVA at BL
 #AEs are defined as a function of sex
-#Scenario 2: patients care more about non-ocular AEs than other AEs  or PE
+#Scenario 1: patients care more about PE than AEs
 
 
 
@@ -70,9 +70,27 @@ mcda_test_obs <- stats::t.test(dt_final$mcda[dt_final$trt=='c' & dt_final$miss =
 
 mcda_test_mi <- mi_weights(data = dt_final, 
                            vars_bl = c('bcva_bl', 'age_bl', 'sex', 'cst_bl', 'srf', 'irf', 'rpe'),
-                           w_spec = l, num_m = 10, mi_method = 'norm')
+                           w_spec = l, num_m = 10, mi_method = 'cart', 
+                           trunc_range = TRUE)
+###########################
+#summarise the br results #
+###########################
 
-#summarise the br results
+br_comp <- tibble::tibble(meth = 'all',
+                          mean_diff = mcda_test_all$estimate[1] - mcda_test_all$estimate[2],
+                          se_diff = mean_diff/mcda_test_all$statistic)
+
+br_comp[2, 'meth'] <- 'obs'
+br_comp[2, 'mean_diff'] <- mcda_test_obs$estimate[1] - mcda_test_obs$estimate[2]
+br_comp[2, 'se_diff'] <- (mcda_test_obs$estimate[1] - mcda_test_obs$estimate[2])/
+  mcda_test_obs$statistic
+
+br_comp[3, 'meth'] <- 'mi'
+br_comp[3, 'mean_diff'] <- mcda_test_mi$qbar
+br_comp[3, 'se_diff'] <- sqrt(mcda_test_mi$t)
+br_comp[3, 'ubar'] <- mcda_test_mi$ubar
+br_comp[3, 'b'] <- mcda_test_mi$b
+
 br_result <- tibble::tibble(res = ifelse(mcda_test_all$conf.int[2] < 0, 'benefit', 'no benefit'),
                             meth = 'all')
 br_result[2, 'res']  <- ifelse(mcda_test_obs$conf.int[2] < 0, 'benefit', 'no benefit')
@@ -83,11 +101,11 @@ br_result[3, 'meth'] <- 'mi'
 
 br_result[, 'sim_id'] <- i
 
-out <- list(br_result)%>%purrr::set_names('br_result')
+out <- list(br_comp, br_result)%>%purrr::set_names('br_comp', 'br_result')
 
 return(out)
 
 })
 
 
-saveRDS(x1, 'mcda_results/mcda_c3_sc2_pmiss90.rds')
+saveRDS(x1, sprintf('mcda_results/mcda_c3_sc2_pmiss%d_%s%s.rds', 100*0.8, 'cart', TRUE))
