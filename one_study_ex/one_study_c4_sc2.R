@@ -147,15 +147,15 @@ reset_limits <- function(p,max_y=NULL,max_x=NULL){
     max_y <- ceiling(max(find_limit(p,'y')))
   
   if(is.null(max_x))
-    max_x <- ceiling(max(find_limit(p,'x')))
+    max_x <- ceiling(max(find_limit(p,'x'))) + 10
   
-  p <- purrr::map(p,function(x,new_val) x + scale_x_continuous(limits=c(0,new_val),breaks = seq(0,100,20)),new_val=max_x)
-  p <- purrr::map(p,function(x,new_val) x + scale_y_continuous(limits=c(0,new_val)),new_val=max_y)
+  p <- purrr::map(p,function(x,new_val) x + scale_x_continuous(expand = expand_scale(add = 10),limits=c(0,new_val),breaks = seq(0,100,20)),new_val=max_x)
+  p <- purrr::map(p,function(x,new_val) x + scale_y_continuous(expand = expand_scale(add = 10),limits=c(0,new_val)),new_val=max_y)
   p
 }
 
-p_down <- list(p1, p2, p3, p4)%>%reset_limits(max_x=110, max_y = 350)
-p_up <- list(p1_up, p2_up, p3_up, p4_up)
+p_down <- list(p1,p4,p2,p3)%>%reset_limits()
+p_up <- list(p1_up, p4_up, p2_up, p3_up)
 
 plot_criteria_weights <- purrr::map2(p_up,p_down,.f=function(p1,p2) (p1/p2) + plot_layout(heights = c(1,4)))%>%purrr::reduce(`|`)
 

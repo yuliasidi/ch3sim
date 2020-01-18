@@ -15,16 +15,16 @@ source('funs/mi_weights.R')
 #assume that PE weights are affected only by BCVA at BL
 #patients who have lower BCVA at BL would have higher weights on average that patients who have higher 
 #BCVA values at BL 
-v1_w1_mu  <- c(90, 60, 30) 
+v1_w1_mu  <- c(70, 50, 30) 
 v1_w1_sd  <- rep(7, 3)
 
 #assume that AEs weights are affected by sex, and that women would have lower weights than men 
-v1_w2_mu <- c(50, 75)
+v1_w2_mu <- c(50, 80)
 v1_w2_sd <- rep(7, 2)
-v1_w3_mu <- c(50, 75)
+v1_w3_mu <- c(70, 90)
 v1_w3_sd <- rep(7, 2)
 
-p_miss <- 0.8
+p_miss <- 0.9
 
 #scenario: three weights- BCVA, and AEs
 #BCVA is defined as a function of BCVA at BL
@@ -33,7 +33,7 @@ p_miss <- 0.8
 
 
 
-x1 <- parallel::mclapply(X = 1:1000,
+x1 <- parallel::mclapply(X = 1:2000,
                          mc.cores = 24,
                          FUN = function(i){
                            
@@ -108,4 +108,4 @@ return(out)
 })
 
 
-saveRDS(x1, sprintf('mcda_results/mcda_c3_sc1_pmiss%d_%s%s.rds', 100*0.8, 'norm', FALSE))
+saveRDS(x1, sprintf('mcda_results/mcda_c3_sc2_pmiss%d_%s%s_2k.rds', 100*0.9, 'norm', FALSE))

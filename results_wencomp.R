@@ -37,4 +37,4 @@ xx <- x1%>%
   purrr::map_dbl(.f = function(x) x$wen_uci)
 mean(ifelse(xx < 0, 1, 0))
 
-# -> all the weights return 18.8% of benefit, while Wen et al 25.2%
+# -> all the weights return 17.6% of benefit, while Wen et al 25.3%

@@ -19,9 +19,9 @@ v1_w1_mu  <- c(90, 60, 30)
 v1_w1_sd  <- rep(7, 3)
 
 #assume that AEs weights are affected by sex, and that women would have lower weights than men 
-v1_w2_mu <- c(50, 70)
+v1_w2_mu <- c(50, 75)
 v1_w2_sd <- rep(7, 2)
-v1_w3_mu <- c(50, 70)
+v1_w3_mu <- c(50, 75)
 v1_w3_sd <- rep(7, 2)
 
 p_miss <- 0.6

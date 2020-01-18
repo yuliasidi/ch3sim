@@ -19,9 +19,9 @@ v1_w1_mu  <- c(90, 60, 30)
 v1_w1_sd  <- rep(7, 3)
 
 #assume that AEs weights are affected by sex, and that women would have lower weights than men 
-v1_w2_mu <- c(50, 70)
+v1_w2_mu <- c(50, 75)
 v1_w2_sd <- rep(7, 2)
-v1_w3_mu <- c(50, 70)
+v1_w3_mu <- c(50, 75)
 v1_w3_sd <- rep(7, 2)
 
 p_miss <- 0.5
@@ -34,7 +34,7 @@ p_miss <- 0.5
 
 
 x1 <- parallel::mclapply(X = 1:1000,
-                         mc.cores = 24,
+                         mc.cores = 20,
                          FUN = function(i){
                            
 #generate simulated data to be used with weights

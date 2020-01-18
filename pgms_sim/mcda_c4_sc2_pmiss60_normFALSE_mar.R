@@ -11,6 +11,18 @@ source('funs/assign_weights.R')
 source('funs/pvf_apply.R')
 source('funs/pvf.R')
 source('funs/mi_weights.R')
+source('funs/map_prob.R')
+
+#scenario: four weights- BCVA, CST and AEs
+#BCVA is defined as a function of BCVA at BL
+#AEs are defined as a function of sex
+#CST is defined as a function of CST at BL
+
+#Scenario 2: patients care more about PE and ocular AEs than non-ocular AEs or CST
+
+#################
+#define weights #
+#################
 
 #assume that PE weights are affected only by BCVA at BL
 #patients who have lower BCVA at BL would have higher weights on average that patients who have higher 
@@ -19,17 +31,20 @@ v1_w1_mu  <- c(90, 60, 30)
 v1_w1_sd  <- rep(7, 3)
 
 #assume that AEs weights are affected by sex, and that women would have lower weights than men 
-v1_w2_mu <- c(50, 75)
+v1_w2_mu <- c(70, 80)
 v1_w2_sd <- rep(7, 2)
-v1_w3_mu <- c(50, 75)
+v1_w3_mu <- c(30, 40)
 v1_w3_sd <- rep(7, 2)
 
-p_miss <- 0.8
+#assume that CST weights are affected by CST at BL, patients with higher CST at BL, will give higher
+#weights for the CST outcome
+v1_w4_mu <- c(15, 30)
+v1_w4_sd <- rep(7, 2)
 
-#scenario: three weights- BCVA, and AEs
-#BCVA is defined as a function of BCVA at BL
-#AEs are defined as a function of sex
-#Scenario 1: patients care more about PE than AEs
+
+p_miss1 <- 0.75
+p_miss2 <- 0.52
+
 
 
 
@@ -47,9 +62,11 @@ dt_out <- dt_sim()
 w1_spec <- weight_define_each(data = dt_out, name_weight = 'bcva_48w', br_spec = 'benefit', 'bcvac_bl', w_mu = v1_w1_mu, w_sd = v1_w1_sd)
 w2_spec <- weight_define_each(data = dt_out, name_weight = 'ae_oc', br_spec = 'risk', 'sex', w_mu = v1_w2_mu, w_sd = v1_w2_sd)
 w3_spec <- weight_define_each(data = dt_out, name_weight = 'ae_noc', br_spec = 'risk', 'sex', w_mu = v1_w3_mu, w_sd = v1_w3_sd)
+w4_spec <- weight_define_each(data = dt_out, name_weight = 'cst_16w', br_spec = 'risk', 'cstc_bl', w_mu = v1_w4_mu, w_sd = v1_w4_sd)
+
 
 #cobmine weights into one list
-l <- list(w1_spec, w2_spec, w3_spec)
+l <- list(w1_spec, w2_spec, w3_spec, w4_spec)
 
 #assign weights based on the mean/sd specification provided by the user
 #for each patient, the highest weight will be assigned 100 
@@ -60,8 +77,9 @@ dt_w <- assign_weights(data = dt_out, w_spec = l)
 dt_final <- pvf_apply(data = dt_w, w_spec = l)
 
 #treatment arms comparison using all the weight, only XX% of the weights
+dt_final <- dt_final%>%
+  map_prob(probs = c(p_miss1, p_miss2), col='cstc_bl')
 
-dt_final[, 'miss'] <- stats::rbinom(n = nrow(dt_final), 1, prob = p_miss)
 
 mcda_test_all <- stats::t.test(dt_final$mcda[dt_final$trt=='c'], dt_final$mcda[dt_final$trt=='t'])
 
@@ -101,11 +119,24 @@ br_result[3, 'meth'] <- 'mi'
 
 br_result[, 'sim_id'] <- i
 
-out <- list(br_comp, br_result)%>%purrr::set_names('br_comp', 'br_result')
+w_sum <- dt_final%>%
+  dplyr::group_by(miss)%>%
+  dplyr::summarise_at(c('w_01', 'w_02', 'w_03', 'w_04'), 'mean')
+
+do_t <- dt_final%>%
+  dplyr::group_by(trt)%>%
+  dplyr::summarise(do = mean(miss))
+
+do_bl <- dt_final%>%
+  dplyr::group_by(miss, cstc_bl)%>%
+  dplyr::summarise(n())
+
+out <- list(br_comp, br_result, w_sum, do_t, do_bl)%>%
+  purrr::set_names('br_comp', 'br_result', 'w_sum', 'do_t', 'do_bl')
 
 return(out)
 
 })
 
 
-saveRDS(x1, sprintf('mcda_results/mcda_c3_sc1_pmiss%d_%s%s.rds', 100*0.8, 'norm', FALSE))
+saveRDS(x1, sprintf('mcda_results/mcda_c4_sc2_pmiss%d_%s%s_mar.rds', 100*0.6, 'norm', FALSE))
