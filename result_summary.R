@@ -10,9 +10,9 @@ setting <- list(p_miss = rep(seq(0.5, 0.9, 0.1), 3),
                 mi_method = c(rep('norm', 10), rep('cart', 5)), 
                 truncTF = c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 5))) 
 
-setting <- list(p_miss = rep(seq(0.5, 0.9, 0.1), 1),
-                mi_method = rep('norm', 5),
-                truncTF = c(rep(TRUE, 5)))
+# setting <- list(p_miss = rep(seq(0.5, 0.9, 0.1), 1),
+#                 mi_method = rep('norm', 5),
+#                 truncTF = c(rep(TRUE, 5)))
 
 
 sum_c3_sc1 <- 
@@ -146,7 +146,7 @@ sum_c4_sc1 <-
   dplyr::mutate(
     p_obs = scales::percent(p_obs, accuracy = 1))
 
-plot_sum_c4_sc1 <- plot_pp(sum_c4_sc1)
+plot_sum_c4_sc1 <- plot_pp(sum_c4_sc1)+ theme_bw()
 
 pdf('plots/plot_sum_c4_sc1.pdf')
 plot_sum_c4_sc1
@@ -203,6 +203,7 @@ sum_c4_sc2 <-
 
 plot_sum_c4_sc2 <- plot_pp(sum_c4_sc2)
 
+
 pdf('plots/plot_sum_c4_sc2.pdf')
 plot_sum_c4_sc2
 dev.off()
@@ -229,8 +230,10 @@ ch_sum_c4_sc2 <-
 
 
 
-#comparison with Wen et al.
-x1 <- readRDS('results/mcda_c3_sc2_all_wencomp.rds')
+#############################
+#comparison with Wen et al. #
+#############################
+x1 <- readRDS('results/mcda_c4_sc2_all_wencomp.rds')
 
 x1%>%
   purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
@@ -243,3 +246,92 @@ xx <- x1%>%
 mean(ifelse(xx < 0, 1, 0))
 
 
+
+##########################
+# MDCA C4 Scenario 2 MAR #
+##########################
+
+setting <- list(p_miss = rep(seq(0.5, 0.9, 0.1), 3),
+                mi_method = c(rep('norm', 10), rep('cart', 5)), 
+                truncTF = c(rep(TRUE, 5), rep(FALSE, 5), rep(TRUE, 5))) 
+
+setting <- list(p_miss = rep(seq(0.6, 0.9, 0.1), 3),
+                mi_method = c(rep('norm', 8), rep('cart', 4)), 
+                truncTF = c(rep(TRUE, 4), rep(FALSE, 4), rep(TRUE, 4))) 
+
+
+sum_c4_sc2_mar <- 
+  purrr::pmap_df(setting, .f = function(p_miss, mi_method, truncTF){
+    
+    xx <- readRDS(sprintf('results/mcda_c4_sc2_pmiss%d_%s%s_mar.rds', 
+                          100*p_miss, mi_method, truncTF))
+    
+    xx%>%
+      purrr::map_df(.f = function(x) x$br_result, .id = 'sim')%>%
+      dplyr::group_by(meth, res)%>%
+      dplyr::summarise(pp = n()/length(xx))%>%
+      dplyr::ungroup()%>%
+      dplyr::mutate(p_obs = 1 - p_miss,
+                    mi_method = mi_method,
+                    truncTF = truncTF,
+                    meth = ifelse(meth!='mi', meth, paste(mi_method, 'trunc =', truncTF)))%>%
+      dplyr::filter(res=='benefit')
+  })%>%
+  dplyr::filter(!(meth=='obs'&truncTF))%>%
+  dplyr::mutate(
+    p_obs = scales::percent(p_obs, accuracy = 1))
+
+plot_sum_c4_sc2_mar <- plot_pp(sum_c4_sc2_mar)
+
+pdf('plots/plot_sum_c4_sc2_mar.pdf')
+plot_sum_c4_sc2_mar
+dev.off()
+
+sum_c4_sc2_mard <- sum_c4_sc2_mar%>%
+  dplyr::filter(meth!='all')%>%
+  dplyr::mutate(diff_all = 100*abs(pp - sum_c4_sc2_mar$pp[sum_c4_sc2_mar$meth=='all'][[1]]))
+
+
+wsum_c4_sc2_mar <- 
+  purrr::pmap_df(setting, .f = function(p_miss, mi_method, truncTF){
+    
+    xx <- readRDS(sprintf('results/mcda_c4_sc2_pmiss%d_%s%s_mar.rds', 
+                          100*p_miss, mi_method, truncTF))
+    
+    xx%>%
+      purrr::map_df(.f = function(x) x$w_sum, .id = 'sim')%>%
+      select(-sim)%>%group_by(miss)%>%
+      summarise_all(mean)%>%
+      dplyr::mutate(p_obs = 1 - p_miss,
+                    mi_method = mi_method,
+                    truncTF = truncTF)
+  })
+
+
+ubarb_ch <- purrr::pmap_df(setting, .f = function(p_miss, mi_method, truncTF){
+  
+  xx <- readRDS(sprintf('results/mcda_c4_sc2_pmiss%d_%s%s_mar.rds', 
+                        100*p_miss, mi_method, truncTF))
+  
+  xx%>%
+    purrr::map_df(.f = function(x) x$br_comp, .id = 'sim')%>%
+    dplyr::filter(meth %in% c('mi'))%>%
+    # dplyr::filter(meth %in% c('all', 'mi'))%>%
+    # dplyr::group_by(meth)%>%
+    dplyr::summarise_at(c('mean_diff','ubar', 'b'), 'mean')%>%
+    dplyr::mutate(p_obs = 1 - p_miss,
+                  mi_method = mi_method,
+                  truncTF = truncTF)
+  
+  
+})
+##################################################
+# MDCA C4 Scenario 2 MAR 50% observed norm FALSE #
+##################################################
+
+x1 <- readRDS('results/mcda_c4_sc2_pmiss50_normFALSE_mar.rds')
+
+x1%>%
+  purrr::map_df(.f = function(x) x$br_comp, .id = 'sim')%>%
+  dplyr::filter(meth == 'mi')%>%
+  dplyr::summarise_at(c('ubar', 'b'), 'mean')

@@ -89,7 +89,7 @@ mcda_test_obs <- stats::t.test(dt_final$mcda[dt_final$trt=='c' & dt_final$miss =
 mcda_test_mi <- mi_weights(data = dt_final, 
                            vars_bl = c('bcva_bl', 'age_bl', 'sex', 'cst_bl', 'srf', 'irf', 'rpe'),
                            w_spec = l, num_m = 10, mi_method = 'norm', 
-                           trunc_range = FALSE)
+                           trunc_range = TRUE)
 ###########################
 #summarise the br results #
 ###########################
@@ -139,4 +139,4 @@ return(out)
 })
 
 
-saveRDS(x1, sprintf('mcda_results/mcda_c4_sc2_pmiss%d_%s%s_mar.rds', 100*0.5, 'norm', FALSE))
+saveRDS(x1, sprintf('mcda_results/mcda_c4_sc2_pmiss%d_%s%s_mar.rds', 100*0.5, 'norm', TRUE))

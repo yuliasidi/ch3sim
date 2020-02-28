@@ -42,13 +42,13 @@ v1_w4_mu <- c(15, 30)
 v1_w4_sd <- rep(7, 2)
 
 
-p_miss1 <- 0.7
-p_miss2 <- 0.39
+p_miss1 <- 0.9
+p_miss2 <- 0.28
 
 
 
 
-x1 <- parallel::mclapply(X = 1:1000,
+x1 <- parallel::mclapply(X = 1:2000,
                          mc.cores = 24,
                          FUN = function(i){
                            
@@ -139,4 +139,4 @@ return(out)
 })
 
 
-saveRDS(x1, sprintf('mcda_results/mcda_c4_sc2_pmiss%d_%s%s_mar.rds', 100*0.5, 'norm', FALSE))
+saveRDS(x1, sprintf('mcda_results/mcda_c4_sc2_pmiss%d_%s%s_mar2_2k.rds', 100*0.5, 'norm', FALSE))

@@ -49,7 +49,7 @@ p_miss2 <- 0.52
 
 
 x1 <- parallel::mclapply(X = 1:1000,
-                         mc.cores = 24,
+                         mc.cores = 20,
                          FUN = function(i){
                            
 #generate simulated data to be used with weights

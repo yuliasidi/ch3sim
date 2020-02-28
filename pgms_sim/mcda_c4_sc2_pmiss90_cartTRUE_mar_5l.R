@@ -28,27 +28,27 @@ source('funs/map_prob.R')
 #patients who have lower BCVA at BL would have higher weights on average that patients who have higher 
 #BCVA values at BL 
 v1_w1_mu  <- c(90, 60, 30) 
-v1_w1_sd  <- rep(15, 3)
+v1_w1_sd  <- rep(7, 3)
 
 #assume that AEs weights are affected by sex, and that women would have lower weights than men 
 v1_w2_mu <- c(70, 80)
-v1_w2_sd <- rep(15, 2)
+v1_w2_sd <- rep(7, 2)
 v1_w3_mu <- c(30, 40)
-v1_w3_sd <- rep(15, 2)
+v1_w3_sd <- rep(7, 2)
 
 #assume that CST weights are affected by CST at BL, patients with higher CST at BL, will give higher
 #weights for the CST outcome
 v1_w4_mu <- c(15, 30)
-v1_w4_sd <- rep(15, 2)
+v1_w4_sd <- rep(7, 2)
 
 
 p_miss1 <- 0.95
-p_miss2 <- 0.57
+p_miss2 <- 0.87
 
 
 
 
-x1 <- parallel::mclapply(X = 1:100,
+x1 <- parallel::mclapply(X = 1:1000,
                          mc.cores = 20,
                          FUN = function(i){
                            
@@ -88,8 +88,8 @@ mcda_test_obs <- stats::t.test(dt_final$mcda[dt_final$trt=='c' & dt_final$miss =
 
 mcda_test_mi <- mi_weights(data = dt_final, 
                            vars_bl = c('bcva_bl', 'age_bl', 'sex', 'cst_bl', 'srf', 'irf', 'rpe'),
-                           w_spec = l, num_m = 10, mi_method = 'norm', 
-                           trunc_range = FALSE)
+                           w_spec = l, num_m = 10, mi_method = 'cart', 
+                           trunc_range = TRUE, n_leaves = 5)
 ###########################
 #summarise the br results #
 ###########################
@@ -127,12 +127,16 @@ do_t <- dt_final%>%
   dplyr::group_by(trt)%>%
   dplyr::summarise(do = mean(miss))
 
-out <- list(br_comp, br_result, w_sum, do_t)%>%
-  purrr::set_names('br_comp', 'br_result', 'w_sum', 'do_t')
+do_bl <- dt_final%>%
+  dplyr::group_by(miss, cstc_bl)%>%
+  dplyr::summarise(n())
+
+out <- list(br_comp, br_result, w_sum, do_t, do_bl)%>%
+  purrr::set_names('br_comp', 'br_result', 'w_sum', 'do_t', 'do_bl')
 
 return(out)
 
 })
 
 
-saveRDS(x1, sprintf('mcda_results/mcda_c4_sc2_pmiss%d_%s%s_mar1.rds', 100*0.7, 'norm', FALSE))
+saveRDS(x1, sprintf('mcda_results/mcda_c4_sc2_pmiss%d_%s%s_mar_5l.rds', 100*0.9, 'cart', TRUE))

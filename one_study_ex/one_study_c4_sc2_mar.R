@@ -87,7 +87,7 @@ p1_up <- dt_final%>%
   labs(y = NULL,x= 'Treatment') + 
   theme_minimal() +
   theme(axis.title.y = element_text(size=rel(0.75))) +
-  scale_x_discrete(labels = c('C','T'))
+  scale_x_discrete(labels = c('Con','Trt'))
 
 
 p2_up <-dt_final%>%
